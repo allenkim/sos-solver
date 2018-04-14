@@ -1,1 +1,2 @@
-# sos-convexity
+# SOS Solver
+

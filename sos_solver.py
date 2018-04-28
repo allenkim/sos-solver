@@ -1,47 +1,66 @@
-"""
-Testing if a polynimal is nonegative is generally hard, but we can recast it as SOS
+import cvxpy as cvx
+import numpy as np
+from itertools import combinations_with_replacement
+from sympy import *
 
-Given p(x), determine if p(x) >= 0 is feasible
+def homogeneous_monomial_helper(syms, d):
+    if d < 0:
+        return []
+    elif d == 0:
+        return np.matrix('1')
+    monomials = []
+    for tup in combinations_with_replacement(syms,d):
+        monomials.append(np.prod(tup))
+    return np.matrix(monomials).T
 
-High Level Code:
+def construct_monomial(syms, d, homogeneous=False):
+    #z = np.matrix([[x*x],[y*y],[x*y]])
+    # If homogenous, only need to generate monomials with exact degree d
+    if homogeneous:
+        return homogeneous_monomial_helper(syms,d)
+    # Else, we need to generate monomials up to degree d
+    else:
+        all_monos = []
+        for deg in range(d+1):
+            all_monos.append(homogeneous_monomial_helper(syms,deg))
+        return np.vstack(all_monos)
+    return []
 
-1. Define symbolic variables - say x1 x2
-vartable = [x1, x2]
+def construct_constraints(z):
+    #A = np.matrix('1 0 0 0 0 0 0 0 0; 0 0 0 0 1 0 0 0 0; 0 0 0 0 0 0 0 2 0; 0 0 0 0 0 0 2 0 0; 0 0 0 2 0 0 0 0 1')
+    #b = np.matrix('2; 5; 0; 2; -1')
+    pass
 
-2. Initialize sum of squares program
-sosprog = SOS_Program(vartable)
+def solve_sdp(A,b,degree):
+    Q = cvx.Semidef(degree)
+    q = cvx.vec(Q)
 
-3. We want to define p(x1,x2) >= 0, ineq assume >= 0
-p = 2*x1^4 + 2*x1^3*x2 - x1^2*x2^2 + 5*x2^4
-sosprog.ineq(p)
+    constraints = [A*q==b]
+    obj = cvx.Minimize(0)
 
-4. We solve
-sosprog.solve()
-"""
+    prob = cvx.Problem(obj, constraints)
+    prob.solve()
+    return (prob.status, Q.value)
 
-"""
-Steps required to have functionality
-1. Convert given SOS_Program to a semi-definite program
+def sos_to_sdp(poly):
+    pass
 
-z is vector of monomials and Q is symmetric Gram matrix
-Result: p is SOS iff exists Q=Q^T >= 0 such that p = z^TQz
-given p has n variables and degree 2d
-z has monomials up to degree d using n variables
-z = [1, x1, x2, ..., xn, x1x2, ..., xn^d]
-for homogeneous polynomials, z only need consider monomials with degree exactly d
-equate coefficents to get matrix A and vector b
-We need to find Q >= 0 such that Aq=b where q is the columns of Q stacked
+def sdp_to_sos(Q,z):
+    L = np.linalg.cholesky(Q).T
+    g = L*z
+    g_squared = np.square(g)
+    return np.sum(g_squared)
 
-2. Solve semi-definite program
-Interior point methods
+def check_sos(poly):
+    z = construct_monomial([x,y],2,poly.is_homogeneous)
 
-3. Convert back to SOS_Program solution
-Since p = z^TQz
-Once we have a Q and z, we can compute Cholesky factorization Q=V^T V since Q is PSD
-p = z^T V V^T z
-Then, we have that p(x) = \sum (Vz)_i^2
+def main():
+    x = Symbol('x')
+    y = Symbol('y')
 
-4*. (Optional) provide certificate of non-sos by dual semidefinite program
-"""
-
+    poly = 2*x**4 + 5*y**4 - x**2*y**2 + 2*x**3*y
+    check_sos(poly)
+    
+if __name__=='__main__':
+    main()
 

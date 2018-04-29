@@ -50,8 +50,12 @@ def construct_constraints(syms,poly,z):
     b = np.matrix(b).astype(float)
     return (A,b)
 
+def is_diagonal(A):
+    return np.count_nonzero(A - np.diag(np.diagonal(A))) == 0
+
 def sos_to_sdp(syms,poly,z):
-    Q = cvx.Semidef(len(z))
+    deg = len(z)
+    Q = cvx.Semidef(deg)
     q = cvx.vec(Q)
 
     A, b = construct_constraints(syms,poly,z)
@@ -60,39 +64,48 @@ def sos_to_sdp(syms,poly,z):
 
     prob = cvx.Problem(obj, constraints)
     prob.solve()
-    return (prob.status, Q.value)
+
+    Q = np.matrix(Q.value)
+    Q[abs(Q)<1e-9] = 0.0
+    return (prob.status, Q)
 
 def sdp_to_sos(Q,z):
-    L = np.linalg.cholesky(Q).T
+    if is_diagonal(Q):
+        L = np.sqrt(Q)
+    else:
+        L = np.linalg.cholesky(Q).T
     g = L*z
     g_squared = np.square(g)
     return np.sum(g_squared)
 
 def check_sos(syms,poly):
+    if isinstance(poly,int):
+        return poly
     deg = Poly(poly).total_degree()
     z = construct_monomial(syms,deg//2,Poly(poly).is_homogeneous)
     if deg % 2 == 1:
-        print("Not SOS")
+        print("Infeasible: degree odd")
         return None
     status, Q = sos_to_sdp(syms,poly,z)
     if status == cvx.INFEASIBLE:
         print("Infeasible")
         return None
-    print(Q)
     sos = sdp_to_sos(Q,z)
     return sos
 
 def main():
     syms = symbols('x y')
     x, y = syms
-
-    poly = 2*x**4 + 5*y**4
-    # poly = 2*x**4 + 5*y**4 - x**2*y**2 + 2*x**3*y
+    
+    # poly = 1
+    # poly = x*y
+    # poly = 2*x**4 + 5*y**4 + 7*x*y**2*x
+    poly = 2*x**4 + 5*y**4 - x**2*y**2 + 2*x**3*y
     print("Initial: {}".format(poly))
     sos = check_sos(syms, poly)
     if sos:
         print("SOS: {}".format(sos))
-        print("SOS Exp: {}".format(expand(sos)))
+        print("SOS Expanded: {}".format(expand(sos)))
     
 if __name__=='__main__':
     main()

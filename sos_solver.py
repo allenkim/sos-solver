@@ -35,15 +35,15 @@ def construct_constraints(syms,poly,z):
             row.append(qs[i*d+j])
         Q.append(row)
     Q = np.matrix(Q)
-    q_poly = expand(np.asscalar(z.T * Q * z))
-    monom_coeffs = Poly(q_poly,syms).monoms()
+    q_poly = Poly(expand(np.asscalar(z.T * Q * z)),syms)
+    monom_coeffs = q_poly.monoms()
     eqns = []
     for monom_coeff in monom_coeffs:
         expr = 1
         for var, exp in zip(syms, monom_coeff):
             expr *= var**exp
-        q_expr = q_poly.coeff(expr)
-        q_val = poly.coeff(expr)
+        q_expr = q_poly.coeff_monomial(expr)
+        q_val = poly.coeff_monomial(expr)
         eqns.append(q_expr-q_val)
     A,b = linear_eq_to_matrix(eqns, qs)
     A = np.matrix(A).astype(float)
@@ -66,26 +66,28 @@ def sos_to_sdp(syms,poly,z):
     prob.solve()
 
     Q = np.matrix(Q.value)
-    Q[abs(Q)<1e-9] = 0.0
     return (prob.status, Q)
 
 def sdp_to_sos(Q,z):
-    if is_diagonal(Q):
-        L = np.sqrt(Q)
-    else:
+    try:
+        L = np.linalg.cholesky(Q).T
+    except:
+        Q += np.eye(len(z))*1e-7
         L = np.linalg.cholesky(Q).T
     g = L*z
     g_squared = np.square(g)
     return np.sum(g_squared)
 
-def check_sos(syms,poly):
+def check_sos(poly):
     if isinstance(poly,int):
         return poly
-    deg = Poly(poly).total_degree()
-    z = construct_monomial(syms,deg//2,Poly(poly).is_homogeneous)
+    poly = Poly(poly).exclude()
+    deg = poly.total_degree()
     if deg % 2 == 1:
         print("Infeasible: degree odd")
         return None
+    syms = poly.gens
+    z = construct_monomial(syms,deg//2,poly.is_homogeneous)
     status, Q = sos_to_sdp(syms,poly,z)
     if status == cvx.INFEASIBLE:
         print("Infeasible")
@@ -93,19 +95,41 @@ def check_sos(syms,poly):
     sos = sdp_to_sos(Q,z)
     return sos
 
+def drop_epsilon_coeff(poly):
+    new_poly = 0
+    syms = poly.gens
+    for exps, coeff in poly.terms():
+        if abs(coeff) > 1e-6:
+            expr = 1
+            for var, exp in zip(syms,exps):
+                expr *= var**exp
+            new_poly += coeff * expr
+    return new_poly
+
+def print_sos_test(poly):
+    print(poly)
+    sos = check_sos(poly)
+    if sos:
+        print("SOS: {}".format(sos))
+        print("SOS Expanded: {}".format(expand(sos)))
+        """
+        sos = drop_epsilon_coeff(Poly(sos))
+        print("SOS Expanded (cleaned): {}".format(expand(sos)))
+        """
+ 
 def main():
     syms = symbols('x y')
     x, y = syms
     
-    # poly = 1
-    # poly = x*y
-    # poly = 2*x**4 + 5*y**4 + 7*x*y**2*x
-    poly = 2*x**4 + 5*y**4 - x**2*y**2 + 2*x**3*y
-    print("Initial: {}".format(poly))
-    sos = check_sos(syms, poly)
-    if sos:
-        print("SOS: {}".format(sos))
-        print("SOS Expanded: {}".format(expand(sos)))
+    # poly = 1 # edge case SOS
+    # poly = x*y # not SOS
+    # poly = x**4 + y**4 # simple SOS
+    # poly = x**2 + 2*x*y + y**2 # SOS
+    # poly = x**4 + x**2 + 2*x*y + y**2 # SOS
+    # poly = 4*x**4*y**6 + x**2 - x*y**2 + y**2 # SOS
+    # poly = x**4*y**2 + x**2*y**4 - 3*x**2*y**2 + 1 # not SOS but PSD
+    poly = 2*x**4 + 5*y**4 - x**2*y**2 + 2*x**3*y # is SOS
+    print_sos_test(poly)
     
 if __name__=='__main__':
     main()

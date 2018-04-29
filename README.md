@@ -8,7 +8,7 @@ It is clear that SOS implies non-negative, but the converse is not necessarily
 true. However, for several important cases, i.e. univariate, quadratic, the 
 converse also holds.
 
-We want to solve: `Given p(x), determine if p(x) >= 0 is feasible`
+We want to solve (sos_solver.py): `Given p(x), determine if p(x) >= 0 is feasible`
 
 ## High Level Code
 1. Convert a given SOS\_Program to a semi-definite program
@@ -31,3 +31,6 @@ We have that p = z^T Q z
 Once we have a Q and z, we can compute Cholesky factorization Q=V V^T since Q is PSD
 p = z^T V^T V z
 Then, we have that p(x) = \sum (Vz)\_i^2
+
+4. We can extend, as found in minbound_solver.py, to find lower bounds on functions by solving:
+`Maximize \gamma such that f(x) - \gamma >= 0`

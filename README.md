@@ -1,25 +1,16 @@
 # SOS Solver
 
-Testing if a polynimal is nonegative is generally hard, but we can recast it as SOS
+This is a simple program to test if a polynomial can be recast as a sum of
+squares (SOS). In general, testing if a polynimal is non-negative is NP hard, but
+we can test if a polynomial can be represented as an SOS in polynomial time.
 
-Given p(x), determine if p(x) >= 0 is feasible
+It is clear that SOS implies non-negative, but the converse is not necessarily
+true. However, for several important cases, i.e. univariate, quadratic, the 
+converse also holds.
 
-High Level Code:
+We want to solve: `Given p(x), determine if p(x) >= 0 is feasible`
 
-1. Define symbolic variables - say x1 x2
-vartable = [x1, x2]
-
-2. Initialize sum of squares program
-sosprog = SOS\_Program(vartable)
-
-3. We want to define p(x1,x2) >= 0, ineq assume >= 0
-p = 2\*x1^4 + 2\*x1^3\*x2 - x1^2\*x2^2 + 5\*x2^4
-sosprog.ineq(p)
-
-4. We solve
-sosprog.solve()
-
-Steps required to have functionality
+## High Level Code
 1. Convert given SOS\_Program to a semi-definite program
 
 z is vector of monomials and Q is symmetric Gram matrix
@@ -41,6 +32,4 @@ p = z^T V V^T z
 Then, we have that p(x) = \sum (Vz)\_i^2
 
 4. (Optional) provide certificate of non-sos by dual semidefinite program
-
-
 

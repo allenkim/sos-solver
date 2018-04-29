@@ -25,7 +25,7 @@ def construct_monomial(syms, d, homogeneous=False):
         return np.vstack(all_monos)
     return []
 
-def construct_constraints(syms,poly,z):
+def construct_constraints_min(syms,poly,z):
     d = len(z)
     qs = symbols('q0:{}'.format(d*d))
     Q = []
@@ -50,90 +50,60 @@ def construct_constraints(syms,poly,z):
     b = np.matrix(b).astype(float)
     return (A,b)
 
-def is_diagonal(A):
-    return np.count_nonzero(A - np.diag(np.diagonal(A))) == 0
 
-def sos_to_sdp(syms,poly,z):
+def sos_to_sdp_min(syms,poly,z):
     deg = len(z)
     Q = cvx.Semidef(deg)
     q = cvx.vec(Q)
+    gamma = cvx.Variable()
 
-    A, b = construct_constraints(syms,poly,z)
-    constraints = [A*q==b]
-    obj = cvx.Minimize(0)
+    A, b = construct_constraints_min(syms,poly,z)
+    const_val = np.asscalar(b[-1]) - gamma
+    A = A[:-1]
+    b = b[:-1]
+    constraints = [A*q==b, q[0] == const_val]
+    obj = cvx.Maximize(gamma)
 
     prob = cvx.Problem(obj, constraints)
-    prob.solve()
+    opt_val = prob.solve(solver=cvx.SCS)
 
     Q = np.matrix(Q.value)
-    return (prob.status, Q)
+    return (prob.status, opt_val, Q)
 
-def sdp_to_sos(Q,z):
-    try:
-        L = np.linalg.cholesky(Q).T
-    except:
-        Q += np.eye(len(z))*1e-7
-        L = np.linalg.cholesky(Q).T
-    g = L*z
-    g_squared = np.square(g)
-    return np.sum(g_squared)
-
-def check_sos(poly):
+def check_bound(poly):
     if isinstance(poly,int):
-        if poly >= 0:
-            return poly
-        else:
-            print("Infeasible")
-            return None
-    poly = Poly(poly).exclude()
+        return poly
+    poly = Poly(poly)
     deg = poly.total_degree()
     if deg % 2 == 1:
         print("Infeasible: degree odd")
         return None
     syms = poly.gens
-    z = construct_monomial(syms,deg//2,poly.is_homogeneous)
-    status, Q = sos_to_sdp(syms,poly,z)
+    z = construct_monomial(syms,deg//2,False)
+    status, opt_val, Q = sos_to_sdp_min(syms,poly,z)
     if status == cvx.INFEASIBLE:
         print("Infeasible")
         return None
-    sos = sdp_to_sos(Q,z)
-    return sos
+    return opt_val
 
-def drop_epsilon_coeff(poly):
-    new_poly = 0
-    syms = poly.gens
-    for exps, coeff in poly.terms():
-        if abs(coeff) > 1e-6:
-            expr = 1
-            for var, exp in zip(syms,exps):
-                expr *= var**exp
-            new_poly += coeff * expr
-    return new_poly
-
-def print_sos_test(poly):
+def print_min_test(poly):
     print(poly)
-    sos = check_sos(poly)
+    sos = check_bound(poly)
     if sos:
-        print("SOS: {}".format(sos))
-        print("SOS Expanded: {}".format(expand(sos)))
-        """
-        sos = drop_epsilon_coeff(Poly(sos))
-        print("SOS Expanded (cleaned): {}".format(expand(sos)))
-        """
+        print("Min Val: {}".format(sos))
  
+
 def main():
     syms = symbols('x y')
     x, y = syms
     
-    # poly = 1 # edge case SOS
-    # poly = x*y # not SOS
-    # poly = x**4 + y**4 # simple SOS
-    # poly = x**2 + 2*x*y + y**2 # SOS
-    # poly = x**4 + x**2 + 2*x*y + y**2 # SOS
-    # poly = 4*x**4*y**6 + x**2 - x*y**2 + y**2 # SOS
-    # poly = x**4*y**2 + x**2*y**4 - 3*x**2*y**2 + 1 # not SOS but PSD
-    poly = 2*x**4 + 5*y**4 - x**2*y**2 + 2*x**3*y # is SOS
-    print_sos_test(poly)
+    f1 = x+y+1
+    f2 = 19-14*x+3*x**2-14*y+6*x*y+3*y**2
+    f3 = 2*x-3*y
+    f4 = 18-32*x+12*x**2+48*y-36*x*y+27*y**2
+    poly = (1+f1**2*f2)*(30+f3**2*f4)
+    # poly = 4*x**2 - 2.1*x**4 + (1/3)*x**6 + x*y - 4*y**2 + 4*y**4
+    print_min_test(poly)
     
 if __name__=='__main__':
     main()

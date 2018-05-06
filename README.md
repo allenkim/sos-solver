@@ -2,7 +2,9 @@
 
 ## Libraries Used
 sympy 1.1.1
+
 numpy 1.14.3
+
 cvxpy 0.4.11
 
 ## Overview

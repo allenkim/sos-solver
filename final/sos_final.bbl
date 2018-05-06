@@ -1,0 +1,49 @@
+\begin{thebibliography}{1}
+
+\bibitem{sos_convex}
+Amir~Ali Ahmadi and Pablo~A. Parrilo.
+\newblock Sum of squares and polynomial convexity, 2009.
+\newblock Preprint submitted to 48th IEEE Conference on Decision and Control.
+
+\bibitem{hilbert}
+B.~Reznick.
+\newblock Some concrete aspects of hilbert’s 17th problem.
+\newblock In {\em Contemporary Mathematics}, volume 253, pages 251--272.
+  American Mathematical Society, 2000.
+
+\bibitem{sostools}
+G.~Valmorbida S. Prajna P.~Seiler A.~Papachristodoulou, J.~Anderson and P.~A.
+  Parrilo.
+\newblock {\em {SOSTOOLS}: Sum of squares optimization toolbox for {MATLAB}}.
+\newblock \texttt{http://arxiv.org/abs/1310.4716}, 2013.
+\newblock Available from \texttt{http://www.eng.ox.ac.uk/control/sostools},
+  \texttt{http://www.cds.caltech.edu/sostools} and
+  \texttt{http://www.mit.edu/\~{}parrilo/sostools}.
+
+\bibitem{sosopt}
+Peter Seiler.
+\newblock {\em {SOSOPT}: A Toolbox for Polynomial Optimization}.
+\newblock \texttt{https://arxiv.org/abs/1308.1889}, 2013.
+
+\bibitem{sdp}
+Robert~M. Freund.
+\newblock Introduction to semidefinite programming, 2004.
+\newblock Available from
+  \texttt{https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/
+  6-251j-introduction-to-mathematical-programming-fall-2009/readings/
+  MIT6\_251JF09\_SDP.pdf}.
+
+\bibitem{Parrilo03minimizingpolynomial}
+Pablo~A. Parrilo and Bernd Sturmfels.
+\newblock Minimizing polynomial functions.
+\newblock In {\em Proceedings of the Dimacs Workshop on Algorithmic and
+  Quantitative Aspects of Real Algebraic Geometry in Mathematics and Computer
+  Science}, pages 83--100. American Mathematical Society, 2003.
+
+\bibitem{goldstein}
+Gaortizg from Wikimedia~Commons.
+\newblock Goldstein price function, 2012.
+\newblock Distributed under Creative Commons Attribution-Share Alike 3.0
+  Unported license.
+
+\end{thebibliography}

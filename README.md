@@ -1,5 +1,12 @@
 # SOS Solver
 
+## Libraries Used
+sympy 1.1.1
+numpy 1.14.3
+cvxpy 0.4.11
+
+## Overview
+
 This is a simple program to test if a polynomial can be recast as a sum of
 squares (SOS). In general, testing if a polynimal is non-negative is NP hard, but
 we can test if a polynomial can be represented as an SOS in polynomial time.

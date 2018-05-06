@@ -74,6 +74,7 @@ def sdp_to_sos(Q,z):
     except:
         Q += np.eye(len(z))*1e-7
         L = np.linalg.cholesky(Q).T
+    print(L)
     g = L*z
     g_squared = np.square(g)
     return np.sum(g_squared)
@@ -93,6 +94,7 @@ def check_sos(poly):
     syms = poly.gens
     z = construct_monomial(syms,deg//2,poly.is_homogeneous)
     status, Q = sos_to_sdp(syms,poly,z)
+    print(Q)
     if status == cvx.INFEASIBLE:
         print("Infeasible")
         return None

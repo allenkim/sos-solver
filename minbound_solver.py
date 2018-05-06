@@ -1,5 +1,6 @@
 import cvxpy as cvx
 import numpy as np
+import time
 from itertools import combinations_with_replacement
 from sympy import *
 
@@ -88,7 +89,10 @@ def check_bound(poly):
 
 def print_min_test(poly):
     print(poly)
+    start = time.time()
     sos = check_bound(poly)
+    end = time.time()
+    print(end-start)
     if sos:
         print("Min Val: {}".format(sos))
  

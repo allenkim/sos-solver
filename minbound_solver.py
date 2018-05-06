@@ -92,7 +92,7 @@ def print_min_test(poly):
     start = time.time()
     sos = check_bound(poly)
     end = time.time()
-    print(end-start)
+    print("Time: {} s".format(end-start))
     if sos:
         print("Min Val: {}".format(sos))
  
@@ -106,7 +106,7 @@ def main():
     f3 = 2*x-3*y
     f4 = 18-32*x+12*x**2+48*y-36*x*y+27*y**2
     poly = (1+f1**2*f2)*(30+f3**2*f4)
-    # poly = 4*x**2 - 2.1*x**4 + (1/3)*x**6 + x*y - 4*y**2 + 4*y**4
+    poly = 4*x**2 - 2.1*x**4 + (1/3)*x**6 + x*y - 4*y**2 + 4*y**4
     print_min_test(poly)
     
 if __name__=='__main__':

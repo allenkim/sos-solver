@@ -28,14 +28,16 @@
 \usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{enumerate}
 
 \title{Sum of Squares Solver for Python}
 
 \author{
-  Allen Kim \\
+  Allen Kim, Abiyaz Chowdhury \\
   PhD, Computer Science\\
   Stony Brook University\\
   \texttt{allen.kim@stonybrook.edu} \\
+   \texttt{abiyaz.chowdhury@stonybrook.edu} \\
 }
 
 \begin{document}
@@ -128,12 +130,69 @@ q_1 &= q_3 & q_2 &= q_6 & q_5 &= q_7
 
 This conversion was done purely with SymPy for the symbolic manipulations and NumPy for the matrix operations.
 
-\subsection{Solving Semidefinite Program}
-We now have to find a positive semidefinite $Q$ that satisfies the given linear constraints. In general, these problems are solved using interior point methods \cite{sdp}. Since there were already many implementations of these methods available already, we decided to use one called CVXPY that solves these semidefinite programs for us.
+\subsection{Solving Semidefinite Program (Abiyaz Chowdhury)}
+The goal is to find a positive semidefinite matrix $Q$ that satisfies $A_{i} \bullet Q = b_{i}$ where $\bullet$ represents the Frobenius product of two matrices, which is the sum of the entries of their element-wise product. If the matrix $Q$ has dimensions $d \times d$, then each $A_{i}$ also has dimensions $d \times d$ and there are $m$ such matrices $A_{1},...A_{m}$. (It is equivalent to think of the equality constraints as the equation $Aq = B$ where $q$ consists of the elements of $Q$ flattened into a vector, and $A$ consists of the elements of  $A_{1}...A_{m}$  combined into a matrix, and $B = [b_{1}...b_{m}]$). The problem can be written as the following feasibility problem (in the variable matrix $Q$):
 
-We note that this is not exactly an optimization problem since there is no value we are optimizing. This is a feasibility problem, so we need not care about minimizing any value and can just consider a constant instead.
+\begin{equation*}
+\begin{aligned}
+& \text{Find}
+& & Q \succeq 0 \\
+& \text{subject to}
+& & A_i \bullet Q = b_i, \; i = 1, \ldots, m.
+\end{aligned}
+\end{equation*} 
 
-Also, note that $Q$ is not unique, so there is more than one way to convert a polynomial to a sum of squares representation. For the running example, we can find one such $Q$:
+We now have to find a positive semidefinite $Q$ that satisfies the given linear constraints. In general, these problems are solved using interior point methods \cite{sdp}. We will solve this problem using a simple barrier method, using the generalized logarithmic barrier as the barrier function. Before the barrier method can be applied, some preliminary steps are necessary, since the barrier method requires each iteration to be expressed as an optimization problem without inequality constraints, and also requires that the starting step be strictly feasible. We therefore first convert our problem to an optimization problem. The first step is to express the problem in terms of negative-definiteness:
+
+\begin{equation*}
+\begin{aligned}
+& \text{Find}
+& & Q \preceq 0 \\
+& \text{subject to}
+& & - A_i \bullet Q = b_i, \; i = 1, \ldots, m.
+\end{aligned}
+\end{equation*}
+
+This feasibility problem can then be converted to an equivalent optimization problem as follows (in the variables $Q \in \mathbb{R}^{d \times d}$ and $s \in \mathbb{R}$):
+
+\begin{equation*}
+\begin{aligned}
+& \underset{Q,s}{\text{minimize}}
+& & s \\
+& \text{subject to}
+& & Q \preceq sI  \\
+& 
+& & - A_i \bullet Q = b_i, \; i = 1, \ldots, m. 
+\end{aligned}
+\end{equation*}
+
+where $I$ is the identity matrix. This is an optimization problem with constrained equalities and inequalities. If the optimal value to this problem is $s^{*}$, then $s^{*} > 0 $ implies there is a strongly feasible solution.  $s^{*} = 0 $ implies there is a feasible but not strongly feasible solution. For this problem, this just means that the resulting $Q$ will be singular.  $s^{*} < 0 $ implies the problem is infeasible, so no valid sum-of-squares decomposition exists. 
+
+To use the barrier method to solve this problem, we need to introduce a barrier function, and we also need to find a starting point that is strongly feasible. A strongly feasible starting point can be found by first finding any solution  $Q_{0}$ to $A_{i} \bullet Q_{0} = b_{i}, i = 1,...,m$. Then choose $s_{0} > \textbf{ max}(\lambda_{1}, \lambda_{2}...\lambda{n})$ where $\lambda_{i}, i = 1,...m$ are the eigenvalues of $Q_{0}$. Choosing such an $s_{0}$ guarantees that the pair $(Q_{0},s_{0})$ is a strongly feasible starting point for the above problem.
+
+Once a strongly feasible starting point is known, we can introduce the generalized logarithmic barrier function as follows to eliminate the inequality constraints:
+\begin{equation*}
+\begin{aligned}
+& \underset{Q,s}{\text{minimize}}
+& & s - (1/t)\text{log }\text{det } (sI - Q)  \\
+& \text{subject to}
+& & - A_i \bullet Q = b_i, \; i = 1, \ldots, m. 
+\end{aligned}
+\end{equation*}
+
+The above problem has no inequality constraints, and can be solved using the barrier method. The idea is to start with some chosen $t$ and then apply the centering step by solving the above equality constrained problem for a fixed value of $t$. This is known as the centering step, for which Newton's method can be used. Our implementation uses a built-in cvxpy function to perform this step. After this step, $t$ is incremented by scaling it by some parameter $\mu > 1$. The centering step is repeated and $t$ is increased until $s \leq 0$, at which point the solution $Q$ will be the solution to the original feasibility problem. If the algorithm converges to a value of $s > 0$, then the original problem is infeasible, and the SOS decomposition is impossible for the given polynomial. \\ \\
+
+\par                  Loop:
+		\begin{enumerate}[\hspace{1cm} 1.]
+		\item Given $t$, minimize $s - (1/t)\text{log }\text{det } (sI - Q)$ subject to $ - A_i \bullet Q = b_i, \; i = 1, \ldots, m. $. 
+		\item Update $(s,Q)$.
+		\item Stop if $m/t \leq \epsilon$ or $s \leq 0$. 
+		\item Increase $t  \leftarrow \mu*t$.
+		\end{enumerate} 
+
+In the above algorithm, $\mu$ determines the trade-off between the cost of the outer iterations and the cost of the inner iterations. $\epsilon$ is a stopping parameter to guarantee termination. The starting value of $t$ should be make low enough to give the algorithm more potential to finding a solution.
+
+Note that $Q$ is not necessarily unique for a particular polynomial, so there may be more than one way to convert a polynomial to a sum of squares representation. In fact, varying $\mu$
 
 \[Q = \begin{bmatrix}
 2.   &       1.    &     -1.05645373 \\
